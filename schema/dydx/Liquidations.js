@@ -12,6 +12,10 @@ import { LOG_LIQUIDATE_EVENT, SOLO_CONTRACT } from "./constants";
 
 cube(`DydxLiquidations`, {
     sql: `
+with prices as (
+    select symbol, date, price from crawl.prices
+    where base = 'USD' and symbol in ('ETH')
+)    
 select
   block_id,
   block_signed_at,
@@ -20,6 +24,7 @@ select
   "tx_offset",
   "log_offset",
   bt.gas_offered, bt.gas_spent, bt.gas_price,
+  p.price as eth_price,
   '0x' || encode(substr(e.topics[2], 13), 'hex') as "logged_solidAccountOwner",
   '0x' || encode(substr(e.topics[3], 13), 'hex') as "logged_liquidAccountOwner"
 
@@ -89,12 +94,14 @@ select
  
 from
   live.block_log_events e
-left join
-    (
-        select hash, gas_offered, gas_spent, gas_price 
-        from live.block_transactions 
-    ) bt
+left join (
+    select hash, gas_offered, gas_spent, gas_price 
+    from live.block_transactions 
+) bt
 on bt.hash = e.tx_hash
+
+left join prices p
+on p.symbol = 'ETH' and p.date = date_trunc('day', e.block_signed_at)
 
 where
     e.topics[1] = '${LOG_LIQUIDATE_EVENT}'
@@ -177,6 +184,11 @@ where
             sql: `gas_spent * gas_price / 1e18`,
             type: `sum`,
             title: `Transaction Cost (in ETH)`
+        },
+        TransactionCost_Usd: {
+            sql: `eth_price * gas_spent * gas_price / 1e18`,
+            type: `sum`,
+            title: `Transaction Cost (in USD)`
         },
         gasSpent: {
             sql: `gas_spent`,
