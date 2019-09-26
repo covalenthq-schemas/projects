@@ -1,0 +1,16 @@
+name: Node.js Package
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl "https://data-dot-covalent-project.appspot.com/_/refresh"
+
