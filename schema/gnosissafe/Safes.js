@@ -76,5 +76,10 @@ where
                 type: `link`
             }
         }
+    },
+    preAggregations: {
+        main: {
+            type: `originalSql`
+        }
     }
 });

@@ -6,6 +6,7 @@ cube(`CompoundDai`, {
 with prices as (
     select symbol, price from crawl.prices
     where base = 'USD' and symbol in ('CDAI', 'CBAT', 'CETH', 'CREP', 'CUSDC', 'CWBTC', 'CZRX', 'ETH')
+    and date = current_date
 )
 select
    data as cdai_balance,      
@@ -14,9 +15,7 @@ select
    p.price as price
    from batch.trace_sstore_events tse
 
-left join (
-    select * from prices
-) p
+left join prices p
 on p.symbol = 'CDAI' 
 
 where tse.account = '${CDAI_CONTRACT}'

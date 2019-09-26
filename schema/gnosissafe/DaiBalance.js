@@ -23,5 +23,10 @@ and key_path->0 = '1'::jsonb
             type: `string`,
             primaryKey: true
         }
+    },
+    preAggregations: {
+        main: {
+            type: `originalSql`
+        }
     }
 });
