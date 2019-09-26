@@ -183,12 +183,14 @@ where
         TransactionCost_Eth: {
             sql: `gas_spent * gas_price / 1e18`,
             type: `sum`,
-            title: `Transaction Cost (in ETH)`
+            title: `Transaction Cost (in ETH)`,
+            format: `currency`
         },
         TransactionCost_Usd: {
             sql: `eth_price * gas_spent * gas_price / 1e18`,
             type: `sum`,
-            title: `Transaction Cost (in USD)`
+            title: `Transaction Cost (in USD)`,
+            format: `currency`
         },
         gasSpent: {
             sql: `gas_spent`,
