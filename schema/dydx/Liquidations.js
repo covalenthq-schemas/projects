@@ -170,7 +170,7 @@ where
         //     sql: `logged_liquidowedupdate_newpar`,
         //     type: `number`
         // }
-        marketExchangeRate: {
+        liquidationExchangeRate: {
             sql: `case when ${liquidHeldUpdate_deltaWei} = 0 then 0 else ${solidOwedUpdate_deltaWei} / ${liquidHeldUpdate_deltaWei} * 1.05 end`,
             type: `number`,
             format: `currency`
