@@ -152,9 +152,9 @@ where
             type: `string`
         }
     },
-    // preAggregations: {
-    //     main: {
-    //         type: `originalSql`
-    //     }
-    // }
+    preAggregations: {
+        main: {
+            type: `originalSql`
+        }
+    }
 });
