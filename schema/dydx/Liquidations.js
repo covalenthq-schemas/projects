@@ -175,7 +175,13 @@ where
             type: `number`,
             format: `currency`
         },
-        fees: {
+        marketRate_ETH: {
+            sql: `eth_price`,
+            type: `avg`,
+            format: `currency`,
+            title: `ETH Market price (USD)`
+        },
+        feesToLiquidator: {
             sql: `case when ${liquidHeldUpdate_deltaWei} = 0 then 0 else ${liquidHeldUpdate_deltaWei} * ((${solidOwedUpdate_deltaWei} / ${liquidHeldUpdate_deltaWei} * 1.05) - (${solidOwedUpdate_deltaWei} / ${liquidHeldUpdate_deltaWei})) end`,
             type: `number`,
             format: `currency`
