@@ -53,7 +53,7 @@ cube('SetTokens', {
         row_number() over (partition by account order by block_id desc, emit_seq desc) as rn
         from (
             select * from batch.trace_sstore_events
-        	where block_id > 1424239138687365400 
+        	where block_id > ${BLOCK_ID_START}  
         	and account in (select set_token_address from stb_pre_aggregations.sp_token_base where set_type = 'Static Set')
         	and key_path->0 = '8'
         ) x
@@ -71,6 +71,18 @@ cube('SetTokens', {
         	and account in (select set_token_address from stb_pre_aggregations.sp_token_base where set_type = 'Rebalancing Set')
         	and key_path->0 = '12'
         ) x
+
+        union 
+
+        select account, data as naturalunit,
+        row_number() over (partition by account order by block_id desc, emit_seq desc) as rn
+        from (
+            select * from batch.trace_sstore_events
+        	where block_id > ${BLOCK_ID_START} 
+        	and account in (select set_token_address from stb_pre_aggregations.sp_token_base where set_type = 'Static Set')
+        	and key_path->0 = '6'
+        ) x
+
     ) nunits_tbl
     on nunits_tbl.account = lhs.set_token_address and nunits_tbl.rn = 1    
 
