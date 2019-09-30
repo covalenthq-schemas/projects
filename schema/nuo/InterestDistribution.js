@@ -15,10 +15,17 @@ import {
 
 cube(`InterestDistribution`, {
     sql: `
-
+with spot_prices as (
+    select symbol, price from crawl.prices
+    where base = 'USD' 
+    and symbol in ('DAI', 'USDC', 'WETH', 'MKR', 'WBTC', 'LINK', 'TUSD', 'BAT', 'KNC', 'REP', 'ZRX')
+    and date = current_date
+)
     select *,
-    sum(z.profit)  over (partition by token order by date rows between 7 preceding and current row) as r_sum, 
-    avg(z.reserve)  over (partition by token order by date rows between 7 preceding and current row) as r_avg
+    sum(z.profit) over (partition by token order by date rows between 7 preceding and current row) as r_sum, 
+    avg(z.reserve) over (partition by token order by date rows between 7 preceding and current row) as r_avg,    
+    max(z.reserve) over (partition by token order by date rows between 7 preceding and current row) as r_max,
+    p.price as price_usd
     from (
 
     select case 
@@ -124,16 +131,32 @@ cube(`InterestDistribution`, {
     group by 1, 2
     order by 1, 2
     ) z
+    left join spot_prices p 
+    on p.symbol = z.token
 ` ,
 
     measures: {
         count: {
-            type: `count`,
-            drillMembers: [`${CUBE}.token`, `${CUBE}.Created`]
+            type: `count`
+        },
+        spot_price_USD: {
+            sql: `price_usd`,
+            type: `avg`,
+            format: `currency`,
+            title: `Spot Price (USD)`
         },
         reserve: {
             sql: `reserve`,
-            type: `avg`
+            type: `avg`,
+            format: `currency`,
+            drillMembers: [`${CUBE}.token`, `${CUBE}.Date`]
+        },
+        reserve_USD: {
+            sql: `reserve * price_usd`,
+            type: `max`,
+            format: `currency`,
+            title: `Reserve (USD)`,
+            drillMembers: [`${CUBE}.token`, `${CUBE}.Date`]
         },
         DailyGains: {
             sql: `profit`,
