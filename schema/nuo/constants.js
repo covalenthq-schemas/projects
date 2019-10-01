@@ -18,6 +18,7 @@ export const WBTC_TOKEN_CONTRACT = "2260fac5e5542a773aa44fbcfedf7c193bc2c599";
 export const LINK_TOKEN_CONTRACT = "514910771af9ca656af840dff83e8264ecf986ca"
 
 export const TUSD_TOKEN_CONTRACT = "0000000000085d4780B73119b644AE5ecd22b376"
+export const TUSD_OLD_TOKEN_CONTRACT = "8dd5fbce2f6a956c3022ba3663759011dd51e73e"
 
 export const BAT_TOKEN_CONTRACT = "0d8775f648430679a709e98d2b0cb6250d2887ef"
 
@@ -29,10 +30,33 @@ export const ZRX_TOKEN_CONTRACT = "e41d2489571d322189246dafa5ebde1f4699f498"
 
 
 // This is for account level stats
-
 export const NUO_ACCOUNT_FACTORY = "\\x4e9d7f37eadc6fef64b5f5dccc4deb6224667677";
+
+
+// Kernel
+export const KERNEL_CONTRACT = "\\x8dc3bcbb4b506fa2becd065ff4425dee32f156a6";
+
+// LogOrderRepaid (index_topic_1 bytes32 orderHash, uint256 valueRepaid)
+export const LogOrderRepaid = "\\x2d538ae573a2661798539a62b24b14e263cf75f5597027ac2ecfc44ba8ddf9e3"
+
+// LogOrderCreated (index_topic_1 bytes32 orderHash, index_topic_2 address account, index_topic_3 address principalToken, 
+//address collateralToken, address byUser,
+// uint256 principalAmount, uint256 collateralAmount, uint256 premium, uint256 expirationTimestamp, uint256 fee)
+export const LogOrderCreated = "\\x42436fe8b8c5070e5a6cb3c26e7bc2e889f99c1857c1a1323c54b13fedc655f6"
 
 // LogAccountCreated (index_topic_1 address user, index_topic_2 address account, address by)
 export const NUO_ACCOUNT_CREATED = "\\x00ef0c4d7ce8d09e55441711e41dc8f1a6abbe3313f4369ea8094dbf0b7b1820";
 
 export const CRYPTO_EPOCH = 1231006505;
+
+
+export const DECIMALS = (token) => {
+    return `
+case 
+    when ${token} = '${USDC_TOKEN_CONTRACT}' then 1e6
+    when ${token} = '${WBTC_TOKEN_CONTRACT}' then 1e8
+    else 1e18    
+end
+`
+}
+
