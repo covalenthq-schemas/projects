@@ -12,10 +12,10 @@ import { LOG_LIQUIDATE_EVENT, SOLO_CONTRACT } from "./constants";
 
 cube(`DydxLiquidations`, {
     sql: `
-with prices as (
-    select symbol, date, price from crawl.prices
-    where base = 'USD' and symbol in ('ETH', 'WETH', 'DAI', 'USDC')
-)    
+--with prices as (
+--    select symbol, date, price from crawl.prices
+--    where base = 'USD' and symbol in ('ETH', 'WETH', 'DAI', 'USDC')
+--)    
 select block_signed_at, 
 tx_hash,
 gas_offered, gas_spent, gas_price,
@@ -128,22 +128,50 @@ where
 
 ) x
 
-left join prices eth_price
-on eth_price.symbol = 'ETH' and eth_price.date = date_trunc('day', x.block_signed_at)
+left join (
+    select symbol, date, price from crawl.prices
+    where base = 'USD' and symbol = 'ETH'
+) eth_price
+on eth_price.date = date_trunc('day', x.block_signed_at)
 
-left join prices held_price
+
+left join (
+    select symbol, date, price from crawl.prices
+    where base = 'USD' and symbol in ('WETH', 'DAI', 'USDC')  
+) held_price
 on held_price.symbol = case 
 when logged_heldmarket = 0 then 'WETH'
 when logged_heldmarket = 1 then 'DAI'
 when logged_heldmarket = 2 then 'USDC'
 end and held_price.date = date_trunc('day', x.block_signed_at)
 
-left join prices owed_price
+
+left join (
+    select symbol, date, price from crawl.prices
+    where base = 'USD' and symbol in ('WETH', 'DAI', 'USDC')  
+) owed_price
 on owed_price.symbol = case 
 when logged_owedmarket = 0 then 'WETH'
 when logged_owedmarket = 1 then 'DAI'
 when logged_owedmarket = 2 then 'USDC'
 end and owed_price.date = date_trunc('day', x.block_signed_at)
+
+-- left join prices eth_price
+-- on eth_price.symbol = 'ETH' and eth_price.date = date_trunc('day', x.block_signed_at)
+
+-- left join prices held_price
+-- on held_price.symbol = case 
+-- when logged_heldmarket = 0 then 'WETH'
+-- when logged_heldmarket = 1 then 'DAI'
+-- when logged_heldmarket = 2 then 'USDC'
+-- end and held_price.date = date_trunc('day', x.block_signed_at)
+
+-- left join prices owed_price
+-- on owed_price.symbol = case 
+-- when logged_owedmarket = 0 then 'WETH'
+-- when logged_owedmarket = 1 then 'DAI'
+-- when logged_owedmarket = 2 then 'USDC'
+-- end and owed_price.date = date_trunc('day', x.block_signed_at)
  
 ` ,
 
