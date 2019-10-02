@@ -1,5 +1,21 @@
 export const INSTADAPP_REGISTRY = "\\x498b3bfabe9f73db90d252bcd4fa9548cd0fd981";
 
+// LogCompoundToMaker (uint256 cdpNum, 
+// uint256 ethAmt, 
+// uint256 daiAmt, 
+// uint256 fees, 
+// address owner)
+export const LOG_COMPOUND_TO_MAKER = "\\x6a591f77709be32639144727b7f5e3130f2c94a150bf1e40a35d056103b44353"
+
+//LogMakerToCompound (uint256 cdpNum, 
+// uint256 ethAmt, 
+// uint256 daiAmt, 
+// uint256 fees, 
+// address owner)
+export const LOG_MAKER_TO_COMPOUND = "\\x0d9a38a77078cdf6b74c021700faf27821ff4f5bd3f69945451f5185caaffe85"
+
+export const INSTADAPP_BRIDGE = "\\x37aCfEf331e6063C8507C2A69c97B4f78c770A5A"
+
 // event Created(address indexed sender, address indexed owner, address proxy);
 export const CREATED_EVENT = '\\x454b0172f64812df0cd504c2bd7df7aab8ff328a54d946b4bd0fa7c527adf9cc';
 
