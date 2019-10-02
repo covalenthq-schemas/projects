@@ -355,9 +355,9 @@ end and owed_price.date = date_trunc('day', x.block_signed_at)
             }
         }
     },
-    // preAggregations: {
-    //     main: {
-    //         type: `originalSql`
-    //     }
-    // }    
+    preAggregations: {
+        main: {
+            type: `originalSql`
+        }
+    }    
 });
