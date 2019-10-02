@@ -271,11 +271,6 @@ end and owed_price.date = date_trunc('day', x.block_signed_at)
         }
     },
     dimensions: {
-        blockId: {
-            sql: `block_id`,
-            type: `number`,
-            primaryKey: true
-        },
         Created_date: {
             sql: `date_trunc('day', ${CUBE}.block_signed_at)`,
             type: `time`
@@ -356,7 +351,7 @@ end and owed_price.date = date_trunc('day', x.block_signed_at)
         }
     },
     preAggregations: {
-        main: {
+        main_1: {
             type: `originalSql`
         }
     }    
