@@ -70,7 +70,7 @@ cube(`BorrowLiquidations`, {
             type: `sum`
         },
         gasPrice: {
-            sql: `gas_price`,
+            sql: `gas_price / 1e9`,
             type: `sum`
         },
         roi: {

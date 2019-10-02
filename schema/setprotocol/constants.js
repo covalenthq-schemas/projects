@@ -1,3 +1,14 @@
+
+    // event SetTokenCreated(
+    //     address indexed _setTokenAddress,
+    //     address _factory,
+    //     address[] _components,
+    //     uint256[] _units,
+    //     uint256 _naturalUnit,
+    //     bytes32 _name,
+    //     bytes32 _symbol
+    // );
+
 export const SET_TOKEN_CREATED_EVENT = '\\xa31e381e140096a837a20ba16eb64e32a4011fda0697adbfd7a8f7341c56aa94'
 
 export const SET_CORE = '\\xf55186cc537e7067ea616f2aae007b4427a120c8';
