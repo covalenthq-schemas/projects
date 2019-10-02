@@ -14,8 +14,31 @@ cube(`DydxLiquidations`, {
     sql: `
 with prices as (
     select symbol, date, price from crawl.prices
-    where base = 'USD' and symbol in ('ETH')
+    where base = 'USD' and symbol in ('ETH', 'WETH', 'DAI', 'USDC')
 )    
+select block_signed_at, 
+tx_hash,
+gas_offered, gas_spent, gas_price,
+logged_solidaccountowner, logged_liquidaccountowner, logged_solidaccountnumber,
+logged_liquidaccountnumber, logged_heldmarket, logged_owedmarket, 
+logged_solidheldupdate_deltawei, logged_solidowedupdate_deltawei / (
+    case
+        when logged_owedmarket = 0 then 1e18
+        when logged_owedmarket = 1 then 1e18
+        when logged_owedmarket = 2 then 1e6
+    end
+) as logged_solidowedupdate_deltawei, 
+logged_liquidheldupdate_deltawei / (
+    case
+        when logged_heldmarket = 0 then 1e18
+        when logged_heldmarket = 1 then 1e18
+        when logged_heldmarket = 2 then 1e6
+    end
+) as logged_liquidheldupdate_deltawei, logged_liquidowedupdate_deltawei,
+eth_price.price as eth_price,
+held_price.price as held_price,
+owed_price.price as owed_price
+from (
 select
   block_id,
   block_signed_at,
@@ -24,9 +47,8 @@ select
   "tx_offset",
   "log_offset",
   bt.gas_offered, bt.gas_spent, bt.gas_price,
-  p.price as eth_price,
-  '0x' || encode(substr(e.topics[2], 13), 'hex') as "logged_solidAccountOwner",
-  '0x' || encode(substr(e.topics[3], 13), 'hex') as "logged_liquidAccountOwner"
+  '0x' || encode(substr(e.topics[2], 13), 'hex') as "logged_solidaccountowner",
+  '0x' || encode(substr(e.topics[3], 13), 'hex') as "logged_liquidaccountowner"
 
   , hex_to_int(substr(encode(e.data,'hex'),1+(64*0),64)) as "logged_solidaccountnumber"
   , substr(encode(e.data,'hex'), 1+(64*1), 64) as "logged_liquidaccountnumber"
@@ -100,12 +122,29 @@ left join (
 ) bt
 on bt.hash = e.tx_hash
 
-left join prices p
-on p.symbol = 'ETH' and p.date = date_trunc('day', e.block_signed_at)
-
 where
     e.topics[1] = '${LOG_LIQUIDATE_EVENT}'
-    and e.sender = '${SOLO_CONTRACT}'  
+    and e.sender = '${SOLO_CONTRACT}' 
+
+) x
+
+left join prices eth_price
+on eth_price.symbol = 'ETH' and eth_price.date = date_trunc('day', x.block_signed_at)
+
+left join prices held_price
+on held_price.symbol = case 
+when logged_heldmarket = 0 then 'WETH'
+when logged_heldmarket = 1 then 'DAI'
+when logged_heldmarket = 2 then 'USDC'
+end and held_price.date = date_trunc('day', x.block_signed_at)
+
+left join prices owed_price
+on owed_price.symbol = case 
+when logged_owedmarket = 0 then 'WETH'
+when logged_owedmarket = 1 then 'DAI'
+when logged_owedmarket = 2 then 'USDC'
+end and owed_price.date = date_trunc('day', x.block_signed_at)
+ 
 ` ,
 
     measures: {
@@ -128,13 +167,7 @@ where
         //     type: `number`
         // },
         solidOwedUpdate_deltaWei: {
-            sql: `logged_solidowedupdate_deltawei / (
-                case
-                    when logged_owedmarket = 0 then 1e18
-                    when logged_owedmarket = 1 then 1e18
-                    when logged_owedmarket = 2 then 1e6
-                end
-            )`,
+            sql: `logged_solidowedupdate_deltawei`,
             type: `sum`
         },
         // solidOwedUpdate_newPar: {
@@ -142,13 +175,7 @@ where
         //     type: `number`
         // }
         liquidHeldUpdate_deltaWei: {
-            sql: `logged_liquidheldupdate_deltawei / (
-                case
-                    when logged_heldmarket = 0 then 1e18
-                    when logged_heldmarket = 1 then 1e18
-                    when logged_heldmarket = 2 then 1e6
-                end
-            )`,
+            sql: `logged_liquidheldupdate_deltawei`,
             type: `sum`
         },
         // liquidHeldUpdate_newPar: {
@@ -170,32 +197,46 @@ where
         //     sql: `logged_liquidowedupdate_newpar`,
         //     type: `number`
         // }
-        liquidationExchangeRate: {
-            sql: `case when ${liquidHeldUpdate_deltaWei} = 0 then 0 else ${solidOwedUpdate_deltaWei} / ${liquidHeldUpdate_deltaWei} * 1.05 end`,
-            type: `number`,
-            format: `currency`
-        },
+        // liquidationExchangeRate: {
+        //     sql: `case when ${liquidHeldUpdate_deltaWei} = 0 then 0 else ${solidOwedUpdate_deltaWei} / ${liquidHeldUpdate_deltaWei} * 1.05 end`,
+        //     type: `number`,
+        //     format: `currency`
+        // },
         marketRate_ETH: {
             sql: `eth_price`,
             type: `avg`,
             format: `currency`,
             title: `ETH Market price (USD)`
         },
+        HeldPrice_USD: {
+            sql: `held_price`,
+            type: `avg`,
+            format: `currency`,
+            title: `Held Market price (USD)`
+        },
+        OwedPrice_USD: {
+            sql: `owed_price`,
+            type: `avg`,
+            format: `currency`,
+            title: `Owed Market price (USD)`
+        },
         feesToLiquidator: {
-            sql: `case when ${liquidHeldUpdate_deltaWei} = 0 then 0 else ${liquidHeldUpdate_deltaWei} * ((${solidOwedUpdate_deltaWei} / ${liquidHeldUpdate_deltaWei} * 1.05) - (${solidOwedUpdate_deltaWei} / ${liquidHeldUpdate_deltaWei})) end`,
+            sql: `case 
+            when ${liquidHeldUpdate_deltaWei} = 0 then 0 
+            else ${liquidHeldUpdate_deltaWei} * ((${solidOwedUpdate_deltaWei} / ${liquidHeldUpdate_deltaWei} * 1.05) - (${solidOwedUpdate_deltaWei} / ${liquidHeldUpdate_deltaWei})) end`,
             type: `number`,
             format: `currency`
         },
         TransactionCost_Eth: {
             sql: `gas_spent * gas_price / 1e18`,
             type: `sum`,
-            title: `Transaction Cost (in ETH)`,
+            title: `Transaction Cost (ETH)`,
             format: `currency`
         },
         TransactionCost_Usd: {
             sql: `eth_price * gas_spent * gas_price / 1e18`,
             type: `sum`,
-            title: `Transaction Cost (in USD)`,
+            title: `Transaction Cost (USD)`,
             format: `currency`
         },
         gasSpent: {
@@ -203,12 +244,29 @@ where
             type: `sum`
         },
         gasPrice: {
-            sql: `gas_price`,
+            sql: `gas_price / 1e9`,
             type: `sum`
         },
+        profit: {
+            sql: `(logged_liquidheldupdate_deltawei * held_price )
+             - ( logged_solidowedupdate_deltawei * owed_price ) 
+             - (eth_price * gas_spent * gas_price / 1e18)`,
+            format: `currency`,
+            type: `sum`,
+            title: `Profit (USD)`,
+        },
         roi: {
-            sql: `${fees} / ${solidOwedUpdate_deltaWei} `,
-            type: `number`,
+            sql: ` (  
+-- numerator is profit
+                (logged_liquidheldupdate_deltawei * held_price )
+                - ( logged_solidowedupdate_deltawei * owed_price ) 
+                - (eth_price * gas_spent * gas_price / 1e18)
+
+            )  / 
+            ( (logged_liquidheldupdate_deltawei * held_price) 
+              - (eth_price * gas_spent * gas_price / 1e18)
+             )`,
+            type: `avg`,
             format: `percent`
         }
     },
@@ -297,9 +355,9 @@ where
             }
         }
     },
-    preAggregations: {
-        main: {
-            type: `originalSql`
-        }
-    }    
+    // preAggregations: {
+    //     main: {
+    //         type: `originalSql`
+    //     }
+    // }    
 });
