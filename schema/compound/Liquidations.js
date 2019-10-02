@@ -2,6 +2,10 @@ import { LIQUIDATE_BORROW } from "./constants";
 
 cube(`BorrowLiquidations`, {
     sql: `
+    with prices as (
+        select symbol, date, price from crawl.prices
+        where base = 'USD' and symbol in ('ETH')
+    )    
     select 
         block_id,
         block_signed_at,
@@ -12,13 +16,17 @@ cube(`BorrowLiquidations`, {
         substr(substr(encode(data, 'hex'), 1+(64*3), 64), 25) as logged_cTokenCollateral,
         hex_to_int(substr(encode(data, 'hex'), 1+(64*4), 64)) as logged_seizeTokens,
         '0x' || encode(tx_hash, 'hex') as tx_hash,
-        gas_offered, gas_spent, gas_price
+        gas_offered, gas_spent, gas_price, 
+        p.price as eth_price
     from live.block_log_events e
     left join (
         select hash, gas_offered, gas_spent, gas_price 
         from live.block_transactions 
     ) bt
     on bt.hash = e.tx_hash
+
+    left join prices p
+    on p.symbol = 'ETH' and  p.date = date_trunc('day', e.block_signed_at)
 
     where topics[1] = '${LIQUIDATE_BORROW}'
 
@@ -47,10 +55,15 @@ cube(`BorrowLiquidations`, {
             sql: `logged_seizeTokens / 1e8`,
             type: `sum`
         },
-        TransactionCost_Eth: {
+        TransactionCost_ETH: {
             sql: `gas_spent * gas_price / 1e18`,
             type: `sum`,
-            title: `Transaction Cost (in ETH)`
+            title: `Transaction Cost (ETH)`
+        },
+        TransactionCost_USD: {
+            sql: `eth_price * gas_spent * gas_price / 1e18`,
+            type: `sum`,
+            title: `Transaction Cost (USD)`
         },
         gasSpent: {
             sql: `gas_spent`,
