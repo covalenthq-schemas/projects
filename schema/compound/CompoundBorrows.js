@@ -52,6 +52,22 @@ cube(`Borrows`, {
             title: `Borrow Amount (AVG)`,
             format: `currency`
         },
+        borrowAmount_max: {
+            sql: `logged_borrowamount / 
+            case 
+                when sender = '0x4ddc2d193948926d02f9b1fe9e1daa0718270ed5' then 1e18
+                when sender = '0x6c8c6b02e7b2be14d4fa6022dfd6d75921d90e4e' then 1e18
+                when sender = '0xf5dce57282a584d2746faf1593d3121fcac444dc' then 1e18
+                when sender = '0x158079ee67fce2f58472a96584a73c7ab9ac95c1' then 1e18
+                when sender = '0x39aa39c021dfbae8fac545936693ac917d5e7563' then 1e6
+                when sender = '0xb3319f5d18bc0d84dd1b4825dcde5d5f7266d407' then 1e18
+                when sender = '0xc11b1268c1a384e55c48c2391d8d480264a3a7f4' then 1e8
+            end            
+            `,
+            type: `max`,
+            title: `Borrow Amount (MAX)`,
+            format: `currency`
+        }        
     },
     dimensions: {
         blockId: {
