@@ -180,6 +180,24 @@ end and owed_price.date = date_trunc('day', x.block_signed_at)
             type: `count`,
             // drillMembers: [Created, walletAddress, walletLink]
         },
+        HeldPrice_USD: {
+            sql: `held_price`,
+            type: `avg`,
+            format: `currency`,
+            title: `Collateral Market price (USD)`
+        },
+        OwedPrice_USD: {
+            sql: `owed_price`,
+            type: `avg`,
+            format: `currency`,
+            title: `Borrowed Market price (USD)`
+        },
+        marketRate_ETH: {
+            sql: `eth_price`,
+            type: `avg`,
+            format: `currency`,
+            title: `ETH Market price (USD)`
+        },
         solidHeldUpdate_deltaWei: {
             sql: `logged_solidheldupdate_deltawei / (
                 case
@@ -188,7 +206,8 @@ end and owed_price.date = date_trunc('day', x.block_signed_at)
                     when logged_heldmarket = 2 then 1e6
                 end
             )`,
-            type: `sum`
+            type: `sum`,
+            title: `Liquidator Collateral Update`
         },
         // solidHeldUpdate_newPar: {
         //     sql: `logged_solidheldupdate_newpar`,
@@ -196,58 +215,26 @@ end and owed_price.date = date_trunc('day', x.block_signed_at)
         // },
         solidOwedUpdate_deltaWei: {
             sql: `logged_solidowedupdate_deltawei`,
-            type: `sum`
+            type: `sum`,
+            title: `Liquidator Borrowed Update`
         },
-        // solidOwedUpdate_newPar: {
-        //     sql: `logged_solidowedupdate_newpar`,
-        //     type: `number`
-        // }
+
         liquidHeldUpdate_deltaWei: {
             sql: `logged_liquidheldupdate_deltawei`,
-            type: `sum`
+            type: `sum`,
+            shown: false
         },
-        // liquidHeldUpdate_newPar: {
-        //     sql: `logged_liquidheldupdate_newpar`,
-        //     type: `number`
-        // },
 
-        liquidOwedUpdate_deltaWei: {
-            sql: `logged_liquidowedupdate_deltawei / (
-                case
-                    when logged_owedmarket = 0 then 1e18
-                    when logged_owedmarket = 1 then 1e18
-                    when logged_owedmarket = 2 then 1e6
-                end
-            )`,
-            type: `sum`
-        },
-        // liquidOwedUpdate_newPar: {
-        //     sql: `logged_liquidowedupdate_newpar`,
-        //     type: `number`
-        // }
-        // liquidationExchangeRate: {
-        //     sql: `case when ${liquidHeldUpdate_deltaWei} = 0 then 0 else ${solidOwedUpdate_deltaWei} / ${liquidHeldUpdate_deltaWei} * 1.05 end`,
-        //     type: `number`,
-        //     format: `currency`
+        // liquidOwedUpdate_deltaWei: {
+        //     sql: `logged_liquidowedupdate_deltawei / (
+        //         case
+        //             when logged_owedmarket = 0 then 1e18
+        //             when logged_owedmarket = 1 then 1e18
+        //             when logged_owedmarket = 2 then 1e6
+        //         end
+        //     )`,
+        //     type: `sum`
         // },
-        marketRate_ETH: {
-            sql: `eth_price`,
-            type: `avg`,
-            format: `currency`,
-            title: `ETH Market price (USD)`
-        },
-        HeldPrice_USD: {
-            sql: `held_price`,
-            type: `avg`,
-            format: `currency`,
-            title: `Held Market price (USD)`
-        },
-        OwedPrice_USD: {
-            sql: `owed_price`,
-            type: `avg`,
-            format: `currency`,
-            title: `Owed Market price (USD)`
-        },
         feesToLiquidator: {
             sql: `case 
             when ${liquidHeldUpdate_deltaWei} = 0 then 0 
@@ -325,7 +312,8 @@ end and owed_price.date = date_trunc('day', x.block_signed_at)
         },
         solidAccountOwner: {
             sql: `"logged_solidAccountOwner"`,
-            type: `string`
+            type: `string`,
+            title: `Liquidator Account Owner`
         },
         solidAccountOwnerLink: {
             sql: `'https://etherscan.io/address/' || "logged_solidAccountOwner"`,
@@ -333,11 +321,13 @@ end and owed_price.date = date_trunc('day', x.block_signed_at)
             format: {
                 label: `Etherscan`,
                 type: `link`
-            }
+            },
+            title: `Liquidator Account Owner Link`
         },
         liquidAccountOwner: {
             sql: `"logged_liquidAccountOwner"`,
-            type: `string`
+            type: `string`,
+            title: `Liquidatee Account Owner`
         },
         liquidAccountOwnerLink: {
             sql: `'https://etherscan.io/address/' || "logged_liquidAccountOwner"`,
@@ -345,18 +335,20 @@ end and owed_price.date = date_trunc('day', x.block_signed_at)
             format: {
                 label: `Etherscan`,
                 type: `link`
-            }
+            },
+            title: `Liquidatee Account Owner Link`
         },
         solidAccountNumber: {
             sql: `logged_solidAccountNumber`,
-            type: `string`
+            type: `string`,
+            shown: false
         },
         liquidAccountNumber: {
             sql: `logged_liquidAccountNumber`,
-            type: `string`
+            type: `string`,
+            shown: false
         },
         heldMarket: {
-            // sql: `logged_heldmarket`,
             type: `string`,
             case: {
                 when: [
@@ -364,10 +356,10 @@ end and owed_price.date = date_trunc('day', x.block_signed_at)
                     { sql: `logged_heldmarket = 1`, label: `DAI` },
                     { sql: `logged_heldmarket = 2`, label: `USDC` }
                 ]
-            }
+            },
+            title: `Collateral Type`
         },
         owedMarket: {
-            // sql: `logged_owedmarket`,
             type: `string`,
             case: {
                 when: [
@@ -375,12 +367,13 @@ end and owed_price.date = date_trunc('day', x.block_signed_at)
                     { sql: `logged_owedmarket = 1`, label: `DAI` },
                     { sql: `logged_owedmarket = 2`, label: `USDC` }
                 ]
-            }
+            },
+            title: `Borrowed Type`
         }
     },
     preAggregations: {
         main_1: {
             type: `originalSql`
         }
-    }    
+    }
 });
