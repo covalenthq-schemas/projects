@@ -14,77 +14,87 @@ const BLOCK_ID_START = 1390900854189650515;
 cube('SetTokens', {
     sql: `
 
-    select set_type, 
-    '0x' || encode(set_token_address, 'hex') as set_token_address,
-    '0x' || encode(base_token_address, 'hex') as base_token_address,
-    supply_tbl.supply,
-    units_tbl.units,
-    nunits_tbl.naturalunit
+    with staticsets as (
+        select *, 
+        (string_to_array(substr(encode(data, 'hex'), 1+(64*7), 64 * logged_components_length), '000000000000000000000000'))[2:] as logged_components
 
-    from stb_pre_aggregations.sp_token_base lhs
-
-    left join
-    (
-        select account, coalesce(data, 0) / 1e18 as supply,
-        row_number() over (partition by account order by block_id desc, emit_seq desc) as rn
-        from (
-            select * from batch.trace_sstore_events
-        	where block_id > ${BLOCK_ID_START} 
-        	and account in (select set_token_address from stb_pre_aggregations.sp_token_base)
-        	and key_path->0 = '2'
+        from
+        (
+            select 'Static Set' as set_type, substr(topics[2], 13) as set_token_address
+            , substr(substr(encode(data, 'hex'), 1+(64*0),64), 25) as "logged_factory"
+            , hex_to_int(substr(encode(data, 'hex'), 1+(64*1),64)) as "logged_components_slen"
+            , hex_to_int(substr(encode(data, 'hex'), 1+(64*2),64)) as "logged_units_slen"
+            , hex_to_int(substr(encode(data, 'hex'), 1+(64*3),64)) as "logged_naturalunit"
+            , convert_from(decode(replace(substr(encode(data, 'hex'), 1+(64*4),64), '00',''), 'hex'), 'utf-8') as "logged_name"
+            , convert_from(decode(replace(substr(encode(data, 'hex'), 1+(64*5),64), '00' ,''), 'hex'), 'utf-8') as "logged_symbol"
+            , hex_to_int(substr(encode(data, 'hex'), 1+(64*6), 64))::int as "logged_components_length"
+            , data
+            from live.block_log_events
+            where not (
+                substr(encode(data, 'hex'), 25, 40) = 'd85af84c22b71bdaa25333a7898ddc6f2f1088eb' or 
+                substr(encode(data, 'hex'), 25, 40) = 'ad78e5570f24a268687c6cc0f73966e9978568a7' or
+                substr(encode(data, 'hex'), 25, 40) = '15518cdd49d83471e9f85cdcfbd72c8e2a78dde2'            
+            ) and
+            topics[1] = '${SET_TOKEN_CREATED_EVENT}'
+            AND sender = '${SET_CORE}'
         ) x
-    ) supply_tbl
-    on supply_tbl.account = lhs.set_token_address and supply_tbl.rn = 1
-
-    left join
-    (
-        select account, data as units,
-        row_number() over (partition by account order by block_id desc, emit_seq desc) as rn
-        from (
-            select * from batch.trace_sstore_events
-        	where block_id > ${BLOCK_ID_START} 
-        	and account in (select set_token_address from stb_pre_aggregations.sp_token_base where set_type = 'Rebalancing Set')
-        	and key_path->0 = '15'
-        ) x
-
+    ),
+    rebalancingsets as (
+        select *, 
+        (string_to_array(substr(encode(data, 'hex'), 1+(64*7), 64 * logged_components_length), '000000000000000000000000'))[2:] as logged_components
+        from 
+        (
+            select 'Rebalancing Set' as set_type, substr(topics[2], 13) as set_token_address
+            , substr(substr(encode(data, 'hex'), 1+(64*0),64), 25) as "logged_factory"
+            , hex_to_int(substr(encode(data, 'hex'), 1+(64*1),64)) as "logged_components_slen"
+            , hex_to_int(substr(encode(data, 'hex'), 1+(64*2),64)) as "logged_units_slen"
+            , hex_to_int(substr(encode(data, 'hex'), 1+(64*3),64)) as "logged_naturalunit"
+            , convert_from(decode(replace(substr(encode(data, 'hex'), 1+(64*4),64), '00',''), 'hex'), 'utf-8') as "logged_name"
+            , convert_from(decode(replace(substr(encode(data, 'hex'), 1+(64*5),64), '00' ,''), 'hex'), 'utf-8') as "logged_symbol"
+            , hex_to_int(substr(encode(data, 'hex'), 1+(64*6), 64))::int as "logged_components_length"
+            , data
+            from live.block_log_events
+            where (
+                substr(encode(data, 'hex'), 25, 40) = 'd85af84c22b71bdaa25333a7898ddc6f2f1088eb' or 
+                substr(encode(data, 'hex'), 25, 40) = 'ad78e5570f24a268687c6cc0f73966e9978568a7' or
+                substr(encode(data, 'hex'), 25, 40) = '15518cdd49d83471e9f85cdcfbd72c8e2a78dde2'            
+            ) and
+            topics[1] = '${SET_TOKEN_CREATED_EVENT}'
+            AND sender = '${SET_CORE}'   
+        ) x     
+    ),
+    lhs as (
+        select * from staticsets 
         union 
-        
-        select account, data as units,
-        row_number() over (partition by account order by block_id desc, emit_seq desc) as rn
-        from (
-            select * from batch.trace_sstore_events
-        	where block_id > ${BLOCK_ID_START}  
-        	and account in (select set_token_address from stb_pre_aggregations.sp_token_base where set_type = 'Static Set')
-        	and key_path->0 = '8'
-        ) x
+        select * from rebalancingsets        
+    )
+    
+    select * from lhs
+left join
+(
+    select account, data as units,
+    row_number() over (partition by account order by block_id desc, emit_seq desc) as rn
+    from (
+        select * from batch.trace_sstore_events
+        where block_id > ${BLOCK_ID_START} 
+        and account in (select set_token_address from lhs where set_type = 'Rebalancing Set')
+        and key_path->0 = '15'
+    ) x
 
-    ) units_tbl
-    on units_tbl.account = lhs.set_token_address and units_tbl.rn = 1
+    union 
+    
+    select account, data as units,
+    row_number() over (partition by account order by block_id desc, emit_seq desc) as rn
+    from (
+        select * from batch.trace_sstore_events
+        where block_id > ${BLOCK_ID_START}  
+        and account in (select set_token_address from lhs where set_type = 'Static Set')
+        and key_path->0 = '8'
+    ) x
 
-    left join
-    (
-        select account, data as naturalunit,
-        row_number() over (partition by account order by block_id desc, emit_seq desc) as rn
-        from (
-            select * from batch.trace_sstore_events
-        	where block_id > ${BLOCK_ID_START} 
-        	and account in (select set_token_address from stb_pre_aggregations.sp_token_base where set_type = 'Rebalancing Set')
-        	and key_path->0 = '12'
-        ) x
+) units_tbl
+on units_tbl.account = lhs.set_token_address and units_tbl.rn = 1
 
-        union 
-
-        select account, data as naturalunit,
-        row_number() over (partition by account order by block_id desc, emit_seq desc) as rn
-        from (
-            select * from batch.trace_sstore_events
-        	where block_id > ${BLOCK_ID_START} 
-        	and account in (select set_token_address from stb_pre_aggregations.sp_token_base where set_type = 'Static Set')
-        	and key_path->0 = '6'
-        ) x
-
-    ) nunits_tbl
-    on nunits_tbl.account = lhs.set_token_address and nunits_tbl.rn = 1    
 
     `,
     measures: {
@@ -119,7 +129,7 @@ cube('SetTokens', {
         //     primaryKey: true
         // },
         setTokenAddress: {
-            sql: `set_token_address`,
+            sql: `'0x' || encode(set_token_address, 'hex')`,
             type: `string`
         },
         setTokenAddressLink: {
@@ -136,6 +146,18 @@ cube('SetTokens', {
         },
         baseTokenAddress: {
             sql: `base_token_address`,
+            type: `string`
+        },
+        name: {
+            sql: `logged_name`,
+            type: `string`
+        },
+        symbol: {
+            sql: `logged_symbol`,
+            type: `string`
+        },
+        components: {
+            sql: `logged_components`,
             type: `string`
         }
     },
