@@ -117,10 +117,6 @@ on units_tbl.account = lhs.set_token_address and units_tbl.rn = 1
             sql: `units`,
             type: `sum`
         },
-        naturalUnit: {
-            sql: `naturalunit`,
-            type: `sum`
-        }
     },
     dimensions: {
         // blockId: {
@@ -159,7 +155,12 @@ on units_tbl.account = lhs.set_token_address and units_tbl.rn = 1
         components: {
             sql: `logged_components`,
             type: `string`
+        },
+        naturalUnit: {
+            sql: `logged_naturalunit`,
+            type: `number`
         }
+
     },
     preAggregations: {
         main: {
