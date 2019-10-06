@@ -9,7 +9,7 @@ import {
 
 cube(`Deposits`, {
     sql: `
-select x.block_id, x.block_signed_at, x.tx_hash, x.amount, x.type, price, data from (
+select x.block_id, x.block_signed_at, x.tx_hash, x.amount, x.type, sender, price, data from (
     select
         block_id,
         block_signed_at,
