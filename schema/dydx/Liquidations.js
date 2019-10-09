@@ -207,7 +207,7 @@ end and owed_price.date = date_trunc('day', x.block_signed_at)
                 end
             )`,
             type: `sum`,
-            title: `Liquidator Collateral Update`
+            title: `Liquidator Collateral Δ Update`
         },
         // solidHeldUpdate_newPar: {
         //     sql: `logged_solidheldupdate_newpar`,
@@ -216,7 +216,7 @@ end and owed_price.date = date_trunc('day', x.block_signed_at)
         solidOwedUpdate_deltaWei: {
             sql: `logged_solidowedupdate_deltawei`,
             type: `sum`,
-            title: `Liquidator Borrowed Update`
+            title: `Liquidator Borrowed Δ Update`
         },
 
         liquidHeldUpdate_deltaWei: {
