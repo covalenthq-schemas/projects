@@ -101,10 +101,22 @@ cube(`Borrows`, {
             title: `Borrow (USD quote rate)`,
             format: `currency`
         },
-        borrowAmount_quote: {
+        borrowAmount_sum_quote: {
             sql: `usd_quote`,
             type: `sum`,
-            title: `Borrow (USD quote)`,
+            title: `Borrow (sum USD quote)`,
+            format: `currency`
+        },
+        borrowAmount_avg_quote: {
+            sql: `usd_quote`,
+            type: `avg`,
+            title: `Borrow (avg USD quote)`,
+            format: `currency`
+        },
+        borrowAmount_max_quote: {
+            sql: `usd_quote`,
+            type: `max`,
+            title: `Borrow (max USD quote)`,
             format: `currency`
         }
     },
